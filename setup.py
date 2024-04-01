@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="databricks_filesystem",
-    version="0.0.1",
+    version="0.0.2",
     description="Databricks Utils does not support few crucial file system operations like recursive directory listing, pattern-matching for files, listing only directories or files, and more. This package provides seamless execution of these tasks.",
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",

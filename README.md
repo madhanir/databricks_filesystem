@@ -111,4 +111,4 @@ The code for this package is open-source and available on [GitHub](https://githu
 
 Additional Information
 ---
-You can get more information about this package [here](https://medium.com/@rahul.madhani)
+You can get more information about this package [here](https://medium.com/data-engineer-things/finally-in-databricks-we-can-now-perform-recursive-directory-listing-and-many-more-operations-c5f32aad78e7)
