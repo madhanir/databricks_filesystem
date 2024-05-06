@@ -105,10 +105,6 @@ adb_fs.filesystem_list(filesystem_path="dbfs:/FileStore/", list_directories=Fals
 adb_fs.filesystem_list(filesystem_path="dbfs:/FileStore/", sorted_output=False)
 ```
 
-Code
----
-The code for this package is open-source and available on [GitHub](https://github.com/madhanir/databricks_filesystem).
-
 Additional Information
 ---
 You can get more information about this package [here](https://medium.com/data-engineer-things/finally-in-databricks-we-can-now-perform-recursive-directory-listing-and-many-more-operations-c5f32aad78e7)
