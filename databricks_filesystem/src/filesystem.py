@@ -1,3 +1,4 @@
+from typing import Union, List
 from pyspark.dbutils import DBUtils
 
 class DatabricksFilesystem:
@@ -25,7 +26,7 @@ class DatabricksFilesystem:
             dir_paths = self.dbutils.fs.ls(filesystem_path)
             return list(map(lambda p: p.path, dir_paths))
 
-    def filesystem_list(self, filesystem_path: str, recursive_flag: bool = True, list_directories: bool = True, list_files: bool = True, files_starts_with: str = None, files_ends_with: str = None, case_sensitive_comparison: bool = True, sorted_output: bool = True) -> list:
+    def filesystem_list(self, filesystem_path: str, recursive_flag: bool = True, list_directories: bool = True, list_files: bool = True, files_starts_with: Union[str, List[str]] = None, files_ends_with: Union[str, List[str]] = None, skip_files_starts_with: Union[str, List[str]] = None, skip_files_ends_with: Union[str, List[str]] = None, case_sensitive_comparison: bool = True, sorted_output: bool = True) -> list:
         '''
         This function provides support for the missing file system operations from Databricks. These missing operations include:
             - Recursively listing directory contents
@@ -39,8 +40,10 @@ class DatabricksFilesystem:
         @param: recursive_flag (bool - Optional (Default: True)): When set to True, this flag enables recursive listing of the file system path, including all subdirectories.
         @param: list_directories (bool - Optional (Default: True)): When set to True, this determines whether directories will be included in the output. If enabled, directories will be listed in the output.
         @param: list_files (bool - Optional (Default: True)): When set to True, this determines whether files will be included in the output. If enabled, files will be listed in the output.
-        @param: files_starts_with (str - Optional (Default: None)): The provided pattern dictates that only files starting with it will be listed in the output. This parameter operates exclusively when the "list_files" parameter is set to True, ensuring selective listing based on the specified pattern.
-        @param: files_ends_with (str - Optional (Default: None)): The provided pattern dictates that only files ending with it will be listed in the output. This parameter operates exclusively when the "list_files" parameter is set to True, ensuring selective listing based on the specified pattern.
+        @param: files_starts_with (str or List[str] - Optional (Default: None)): The provided pattern or list of patterns dictates that only files starting with it will be listed in the output. This parameter operates exclusively when the "list_files" parameter is set to True, ensuring selective listing based on the specified pattern or list of patterns.
+        @param: files_ends_with (str or List[str] - Optional (Default: None)): The provided pattern or list of patterns dictates that only files ending with it will be listed in the output. This parameter operates exclusively when the "list_files" parameter is set to True, ensuring selective listing based on the specified pattern or list of patterns.
+        @param: skip_files_starts_with (str or List[str] - Optional (Default: None)): The provided pattern or list of patterns dictates that files starting with it will be excluded in the output. This parameter operates exclusively when the "list_files" parameter is set to True, ensuring selective listing based on the specified pattern or list of patterns.
+        @param: skip_files_ends_with (str or List[str] - Optional (Default: None)): The provided pattern or list of patterns dictates that files ending with it will be excluded in the output. This parameter operates exclusively when the "list_files" parameter is set to True, ensuring selective listing based on the specified pattern or list of patterns.
         @param: case_sensitive_comparison (bool - Optional (Default: True)): When set to True, this parameter determines whether case-sensitive comparison will be applied for file pattern matching. It only functions when the "list_files" parameter is True and values are provided for either "files_starts_with" or "files_ends_with", or both.
         @param: sorted_output (bool - Optional (Default: True)): When set to True, this parameter determines whether the output will be sorted. If enabled, the output will be returned in a sorted manner, facilitating easier navigation and analysis of the results.
 
@@ -52,15 +55,49 @@ class DatabricksFilesystem:
 
         # Get file system content
         paths = self.__get_filesystem_content(filesystem_path, recursive_flag)
-        
+
+        # Check if files_starts_with is a single string then convert it to a list
+        if files_starts_with:
+            if type(files_starts_with) is str :
+                files_starts_with = [files_starts_with]
+
+        # Check if files_ends_with is a single string then convert it to a list
+        if files_ends_with:
+            if type(files_ends_with) is str :
+                files_ends_with = [files_ends_with]
+
+        # Check if skip_files_starts_with is a single string then convert it to a list
+        if skip_files_starts_with:
+            if type(skip_files_starts_with) is str :
+                skip_files_starts_with = [skip_files_starts_with]
+
+        # Check if skip_files_ends_with is a single string then convert it to a list
+        if skip_files_ends_with:
+            if type(skip_files_ends_with) is str :
+                skip_files_ends_with = [skip_files_ends_with]
+
+        # If case sensitive comparision is False (i.e case insensitive comparision) then change all files_starts_with and files_ends_with strings to upper case
+        if not case_sensitive_comparison:
+            if files_starts_with:
+                files_starts_with = [pattern.upper() for pattern in files_starts_with]
+            
+            if files_ends_with:
+                files_ends_with = [pattern.upper() for pattern in files_ends_with]
+
+            if skip_files_starts_with:
+                skip_files_starts_with = [pattern.upper() for pattern in skip_files_starts_with]
+            
+            if skip_files_ends_with:
+                skip_files_ends_with = [pattern.upper() for pattern in skip_files_ends_with]
+     
         # Iterate over each path from the file system to decide whether it should be returned or not
         for path in paths:
-            add_path = True
+            add_path = False
 
             # Check if the current path is directory or not
             if path[-1] == "/":
-                if not list_directories:
-                    add_path = False
+                if list_directories:
+                    add_path = True
             else:
                 if list_files:
                     # Get file name from the path
@@ -69,23 +106,62 @@ class DatabricksFilesystem:
                     # Perfrom file starts with pattern match
                     if files_starts_with:
                         if case_sensitive_comparison:
-                            if not file_name.startswith(files_starts_with):
-                                add_path = False
+                            for pattern in files_starts_with:
+                                if file_name.startswith(pattern):
+                                    add_path = True
+                                    break
                         else:
-                            if not file_name.upper().startswith(files_starts_with.upper()):
-                                add_path = False
+                            for pattern in files_starts_with:
+                                if file_name.upper().startswith(pattern):
+                                    add_path = True
+                                    break
 
-                    # Perfrom file starts with pattern match
+                    # Perfrom file ends with pattern match
                     if files_ends_with:
                         if case_sensitive_comparison:
-                            if not file_name.endswith(files_ends_with):
-                                add_path = False
+                            for pattern in files_ends_with:
+                                if file_name.endswith(pattern):
+                                    add_path = True
+                                    break
                         else:
-                            if not file_name.upper().endswith(files_ends_with.upper()):
-                                add_path = False
-                else:
-                    add_path = False
+                            for pattern in files_ends_with:
+                                if file_name.upper().endswith(pattern):
+                                    add_path = True
+                                    break
 
+                    # If both files_starts_with and files_ends_with are not provided then include file
+                    if (not files_starts_with) and (not files_ends_with):
+                        add_path = True
+
+                    # Check if file is to be added in the output then apply skip filters on it
+                    if add_path:
+                        # Perfrom skip file starts with pattern match
+                        if skip_files_starts_with:
+                            if case_sensitive_comparison:
+                                for pattern in skip_files_starts_with:
+                                    if file_name.startswith(pattern):
+                                        add_path = False
+                                        break
+                            else:
+                                for pattern in skip_files_starts_with:
+                                    if file_name.upper().startswith(pattern):
+                                        add_path = False
+                                        break
+
+                        # Perfrom skip file ends with pattern match
+                        if skip_files_ends_with:
+                            if case_sensitive_comparison:
+                                for pattern in skip_files_ends_with:
+                                    if file_name.endswith(pattern):
+                                        add_path = False
+                                        break
+                            else:
+                                for pattern in skip_files_ends_with:
+                                    if file_name.upper().endswith(pattern):
+                                        add_path = False
+                                        break
+
+            # Check if file should be added to the output or not
             if add_path:
                 output_paths.append(path)
 
