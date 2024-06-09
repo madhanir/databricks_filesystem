@@ -100,6 +100,9 @@ class DatabricksFilesystem:
                     add_path = True
             else:
                 if list_files:
+                    file_start_matching = False
+                    file_end_matching = False
+
                     # Get file name from the path
                     file_name = path.split("/")[-1]
                     
@@ -108,12 +111,12 @@ class DatabricksFilesystem:
                         if case_sensitive_comparison:
                             for pattern in files_starts_with:
                                 if file_name.startswith(pattern):
-                                    add_path = True
+                                    file_start_matching = True
                                     break
                         else:
                             for pattern in files_starts_with:
                                 if file_name.upper().startswith(pattern):
-                                    add_path = True
+                                    file_start_matching = True
                                     break
 
                     # Perfrom file ends with pattern match
@@ -121,17 +124,23 @@ class DatabricksFilesystem:
                         if case_sensitive_comparison:
                             for pattern in files_ends_with:
                                 if file_name.endswith(pattern):
-                                    add_path = True
+                                    file_end_matching = True
                                     break
                         else:
                             for pattern in files_ends_with:
                                 if file_name.upper().endswith(pattern):
-                                    add_path = True
+                                    file_end_matching = True
                                     break
 
+                    if files_starts_with and files_ends_with:
+                        if file_start_matching and file_end_matching:
+                            add_path = True
                     # If both files_starts_with and files_ends_with are not provided then include file
-                    if (not files_starts_with) and (not files_ends_with):
+                    elif (not files_starts_with) and (not files_ends_with):
                         add_path = True
+                    else:
+                        if file_start_matching or file_end_matching:
+                            add_path = True
 
                     # Check if file is to be added in the output then apply skip filters on it
                     if add_path:
